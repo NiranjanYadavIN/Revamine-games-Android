@@ -1,0 +1,59 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- 1. Squircle Background with Exact Linear Gradient and Subtle Border from user SVG -->
+    <path
+        android:pathData="M 116,16 H 396 A 100,100 0 0 1 496,116 V 396 A 100,100 0 0 1 396,496 H 116 A 100,100 0 0 1 16,396 V 116 A 100,100 0 0 1 116,16 Z"
+        android:strokeColor="#40FFFFFF"
+        android:strokeWidth="8">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="512"
+                android:endY="512"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#4F46E5" />
+                <item android:offset="0.5" android:color="#7C3AED" />
+                <item android:offset="1.0" android:color="#4338CA" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Controller Outer Rounded Rectangle (rect x=2 y=6 w=20 h=12 rx=4, scale=11 centered at 256,256) -->
+    <path
+        android:pathData="M 190,190 H 322 A 44,44 0 0 1 366,234 V 278 A 44,44 0 0 1 322,322 H 190 A 44,44 0 0 1 146,278 V 234 A 44,44 0 0 1 190,190 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="22"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 3. D-Pad (Cross: M6 12h4m-2-2v4 with stroke-width=2, scale=11) -->
+    <!-- Horizontal Cross Bar -->
+    <path
+        android:pathData="M 190,256 H 234"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="22"
+        android:strokeLineCap="round" />
+    <!-- Vertical Cross Bar -->
+    <path
+        android:pathData="M 212,234 V 278"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="22"
+        android:strokeLineCap="round" />
+
+    <!-- 4. Action Buttons (Two Circles: cx=17, cy=10, r=1 and cx=15, cy=14, r=1, scale=11) -->
+    <!-- Top-Right Button (cx=311, cy=234, r=11) -->
+    <path
+        android:pathData="M 300,234 A 11,11 0 1,0 322,234 A 11,11 0 1,0 300,234 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Bottom-Left Button (cx=289, cy=278, r=11) -->
+    <path
+        android:pathData="M 278,278 A 11,11 0 1,0 300,278 A 11,11 0 1,0 278,278 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>

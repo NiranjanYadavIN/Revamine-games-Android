@@ -12,24 +12,12 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,21 +28,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.revamine.games.BuildConfig
 import com.revamine.games.bridge.RevaMineNativeBridge
-import com.revamine.games.data.GameCatalog
 import com.revamine.games.data.PrefsStore
 import com.revamine.games.ui.theme.RevaMineGamesTheme
 
 /**
  * Fullscreen "Game Stage" — hardware-accelerated WebView jo
- * games.revamine.com/game/{id}?mode=native load karta hai aur
+ * gameUrl (e.g. games.revamine.com/game/{id}?mode=native) load karta hai aur
  * RevaMineNativeBridge inject karta hai (haptics, AdMob, scores).
- *
- * Security: sirf games.revamine.com (aur localhost dev builds) origin
- * ko WebView me navigate karne diya jaata hai.
  */
 class GameStageActivity : ComponentActivity() {
 
@@ -66,6 +52,18 @@ class GameStageActivity : ComponentActivity() {
 
         val gameId = intent.getStringExtra(EXTRA_GAME_ID) ?: run { finish(); return }
         val gameTitle = intent.getStringExtra(EXTRA_GAME_TITLE) ?: gameId
+        val rawUrl = intent.getStringExtra(EXTRA_GAME_URL)
+        // Construct targetUrl: Always point to /game/{id}?mode=native for Poki/CrazyGames style detail screen
+        val targetUrl = if (!rawUrl.isNullOrBlank()) {
+            val normalized = if (rawUrl.contains("/play/")) rawUrl.replace("/play/", "/game/") else rawUrl
+            if (!normalized.contains("mode=native")) {
+                if (normalized.contains("?")) "$normalized&mode=native" else "$normalized?mode=native"
+            } else {
+                normalized
+            }
+        } else {
+            "https://games.revamine.com/game/$gameId?mode=native"
+        }
         val prefs = PrefsStore(this)
 
         onBackPressedDispatcher.addCallback(
@@ -74,10 +72,10 @@ class GameStageActivity : ComponentActivity() {
                 override fun handleOnBackPressed() {
                     val webView = webViewRef
                     if (webView != null && webView.canGoBack()) {
-                        webView.goBack()
+                        webView.goBack() // Returns from Game canvas back to Game Detail Screen
                     } else {
                         isEnabled = false
-                        onBackPressedDispatcher.onBackPressed()
+                        onBackPressedDispatcher.onBackPressed() // Returns to Native App Home
                         isEnabled = true
                     }
                 }
@@ -89,6 +87,7 @@ class GameStageActivity : ComponentActivity() {
                 GameStageScreen(
                     gameId = gameId,
                     gameTitle = gameTitle,
+                    gameUrl = targetUrl,
                     prefs = prefs,
                     onWebViewReady = { webViewRef = it },
                     onExit = { finish() }
@@ -106,9 +105,10 @@ class GameStageActivity : ComponentActivity() {
     companion object {
         const val EXTRA_GAME_ID = "extra_game_id"
         const val EXTRA_GAME_TITLE = "extra_game_title"
+        const val EXTRA_GAME_URL = "extra_game_url"
 
         /** Bridge sirf in trusted origins par hi inject hoti hai. */
-        val TRUSTED_HOSTS = setOf("games.revamine.com")
+        val TRUSTED_HOSTS = setOf("games.revamine.com", "revamine.com")
     }
 }
 
@@ -116,6 +116,7 @@ class GameStageActivity : ComponentActivity() {
 private fun GameStageScreen(
     gameId: String,
     gameTitle: String,
+    gameUrl: String,
     prefs: PrefsStore,
     onWebViewReady: (WebView) -> Unit,
     onExit: () -> Unit
@@ -139,60 +140,35 @@ private fun GameStageScreen(
                     onMuteChanged = { isMuted = it }
                 ).also { webView ->
                     onWebViewReady(webView)
-                    webView.loadUrl(GameCatalog.stageUrl(gameId))
+                    webView.loadUrl(gameUrl)
                 }
             }
         )
 
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        }
-
-        // Top floating controls: Back | title | Mute
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(12.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
-        ) {
-            FloatingCircleButton(icon = Icons.Filled.ArrowBack, onClick = onExit)
-
-            Surface(
-                color = Color.Black.copy(alpha = 0.4f),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0F172A)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    gameTitle,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-
-            FloatingCircleButton(
-                icon = if (isMuted) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
-                onClick = {
-                    val newMuted = !isMuted
-                    isMuted = newMuted
-                    prefs.isMuted = newMuted
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF6366F1),
+                        strokeWidth = 3.5.dp,
+                        modifier = Modifier.size(46.dp)
+                    )
+                    Text(
+                        text = "Loading $gameTitle...",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-            )
-        }
-    }
-}
-
-@Composable
-private fun FloatingCircleButton(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.size(40.dp),
-        shape = CircleShape,
-        color = Color.Black.copy(alpha = 0.4f)
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = null, tint = Color.White)
+            }
         }
     }
 }
@@ -220,6 +196,10 @@ private fun createGameWebView(
             domStorageEnabled = true
             databaseEnabled = true
             mediaPlaybackRequiresUserGesture = false
+            setSupportZoom(false)
+            displayZoomControls = false
+            useWideViewPort = true
+            loadWithOverviewMode = true
             allowFileAccess = false
             allowContentAccess = false
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
@@ -233,25 +213,29 @@ private fun createGameWebView(
             onExitRequested = onExitRequested,
             onToggleMute = onMuteChanged
         )
+        // Attach both direct interface and AndroidNativeBridge for backward/forward compatibility
+        addJavascriptInterface(bridge, "RevaMineNativeBridge")
         addJavascriptInterface(bridge, "AndroidNativeBridge")
 
         val bridgeShimJs = """
             (function() {
-              if (window.RevaMineNativeBridge) return;
-              window.RevaMineNativeBridge = {
-                isNativeApp: true,
-                appVersion: ${BuildConfig.VERSION_NAME.let { "\"$it\"" }},
-                platform: 'android',
-                triggerHaptic: function(type) { AndroidNativeBridge.triggerHaptic(type); },
-                showRewardedAd: function(optionsJson) { AndroidNativeBridge.showRewardedAd(optionsJson); },
-                showInterstitialAd: function(placement) { AndroidNativeBridge.showInterstitialAd(placement || 'game_over'); },
-                onGameStarted: function(gameId) { AndroidNativeBridge.onGameStarted(gameId); },
-                submitScore: function(payloadJson) { AndroidNativeBridge.submitScore(payloadJson); },
-                onGameOver: function(payloadJson) { AndroidNativeBridge.onGameOver(payloadJson); },
-                setAudioMuted: function(isMuted) { AndroidNativeBridge.setAudioMuted(isMuted); },
-                exitGameToNativeHome: function() { AndroidNativeBridge.exitGameToNativeHome(); },
-                showNativeToast: function(message) { AndroidNativeBridge.showNativeToast(message); }
-              };
+              if (!window.RevaMineNativeBridge || typeof window.RevaMineNativeBridge.isNativeApp === 'undefined') {
+                var rawBridge = window.RevaMineNativeBridge || window.AndroidNativeBridge;
+                window.RevaMineNativeBridge = {
+                  isNativeApp: true,
+                  appVersion: ${BuildConfig.VERSION_NAME.let { "\"$it\"" }},
+                  platform: 'android',
+                  triggerHaptic: function(type) { if (rawBridge && rawBridge.triggerHaptic) rawBridge.triggerHaptic(type); },
+                  showRewardedAd: function(optionsJson) { if (rawBridge && rawBridge.showRewardedAd) rawBridge.showRewardedAd(optionsJson); },
+                  showInterstitialAd: function(placement) { if (rawBridge && rawBridge.showInterstitialAd) rawBridge.showInterstitialAd(placement || 'game_over'); },
+                  onGameStarted: function(gameId) { if (rawBridge && rawBridge.onGameStarted) rawBridge.onGameStarted(gameId); },
+                  submitScore: function(payloadJson) { if (rawBridge && rawBridge.submitScore) rawBridge.submitScore(payloadJson); },
+                  onGameOver: function(payloadJson) { if (rawBridge && rawBridge.onGameOver) rawBridge.onGameOver(payloadJson); },
+                  setAudioMuted: function(isMuted) { if (rawBridge && rawBridge.setAudioMuted) rawBridge.setAudioMuted(isMuted); },
+                  exitGameToNativeHome: function() { if (rawBridge && rawBridge.exitGameToNativeHome) rawBridge.exitGameToNativeHome(); },
+                  showNativeToast: function(message) { if (rawBridge && rawBridge.showNativeToast) rawBridge.showNativeToast(message); }
+                };
+              }
             })();
         """.trimIndent()
 
@@ -286,6 +270,36 @@ private fun createGameWebView(
             }
         }
 
-        webChromeClient = WebChromeClient()
+        // Attach WebChromeClient with HTML5 FullScreen support
+        webChromeClient = object : WebChromeClient() {
+            private var customView: View? = null
+            private var customViewCallback: CustomViewCallback? = null
+
+            @Suppress("DEPRECATION")
+            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                super.onShowCustomView(view, callback)
+                if (customView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                customView = view
+                customViewCallback = callback
+
+                // Hide Android status bar and navigation bar for immersive Fullscreen
+                activity.window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+            }
+
+            @Suppress("DEPRECATION")
+            override fun onHideCustomView() {
+                super.onHideCustomView()
+                customView = null
+                customViewCallback?.onCustomViewHidden()
+                activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+            }
+        }
     }
 }

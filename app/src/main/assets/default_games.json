@@ -1,0 +1,123 @@
+{
+  "status": "success",
+  "total": 9,
+  "games": [
+    {
+      "id": "fruit-blade",
+      "title": "Fruit Blade Pop",
+      "shortTitle": "Fruit Blade",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/fruit-blade.webp",
+      "badge": "HOT",
+      "badgeColor": "bg-rose-500",
+      "tagline": "Slice flying fruits, score combos, dodge bombs, and unlock legendary blades!",
+      "order": 1,
+      "featured": true,
+      "gameUrl": "https://games.revamine.com/game/fruit-blade"
+    },
+    {
+      "id": "cyber-snake",
+      "title": "Snake Adventure",
+      "shortTitle": "Snake Island",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/cyber-snake-2088.webp",
+      "badge": "POPULAR",
+      "badgeColor": "bg-emerald-500",
+      "tagline": "Navigate lush 3D grass, gobble juicy golden apples, and slither to victory!",
+      "order": 2,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/cyber-snake"
+    },
+    {
+      "id": "sling-dunk",
+      "title": "Sling Dunk Pop",
+      "shortTitle": "Sling Dunk",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/sling-dunk.webp",
+      "badge": "NEW",
+      "badgeColor": "bg-amber-500",
+      "tagline": "Sling and shoot basketballs into moving hoops, trigger swish combos, and ignite fiery streaks!",
+      "order": 3,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/sling-dunk"
+    },
+    {
+      "id": "bubble-blast",
+      "title": "Bubble Blast",
+      "shortTitle": "Bubble Blast",
+      "category": "puzzle",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/bubble-blast.webp",
+      "badge": "NEW",
+      "badgeColor": "bg-cyan-500",
+      "tagline": "Aim the cannon, shoot colorful bubbles, pop 3+ clusters, and trigger explosive bomb blasts!",
+      "order": 4,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/bubble-blast"
+    },
+    {
+      "id": "candy-match",
+      "title": "Candy Match Pop",
+      "shortTitle": "Candy Match",
+      "category": "puzzle",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/candy-match-pop.webp",
+      "badge": "",
+      "badgeColor": "bg-pink-500",
+      "tagline": "Match 3 delicious candies, create striped sweets, and trigger chocolate bombs!",
+      "order": 5,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/candy-match"
+    },
+    {
+      "id": "happy-bird",
+      "title": "Happy Flappy Bird",
+      "shortTitle": "Flappy Bird",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/happy-flappy-bird.webp",
+      "badge": "",
+      "badgeColor": "",
+      "tagline": "Flap through pipes in a bright cheerful sky, collect gold coins, and beat your highscore!",
+      "order": 6,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/happy-bird"
+    },
+    {
+      "id": "dino-dash",
+      "title": "Dino Sky Dash",
+      "shortTitle": "Dino Dash",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/dino-sky-dash.webp",
+      "badge": "NEW",
+      "badgeColor": "bg-emerald-500",
+      "tagline": "Sprint through prehistoric lands, jump cacti, duck under pterodactyls, and collect golden eggs!",
+      "order": 7,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/dino-dash"
+    },
+    {
+      "id": "cyber-drift",
+      "title": "Turbo Drift City",
+      "shortTitle": "Turbo Drift",
+      "category": "action",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/cyber-drift.webp",
+      "badge": "HOT",
+      "badgeColor": "bg-rose-500",
+      "tagline": "Burn rubber across neon-lit city highways, collect turbo nitro, and set speed records!",
+      "order": 8,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/cyber-drift"
+    },
+    {
+      "id": "neon-2048",
+      "title": "Jelly Blocks 2048",
+      "shortTitle": "Jelly 2048",
+      "category": "puzzle",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/neon-2048.webp",
+      "badge": "",
+      "badgeColor": "bg-purple-600",
+      "tagline": "Slide and merge squishy jelly numbers to unlock the legendary 2048 golden block!",
+      "order": 9,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/neon-2048"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "RevaMine Games",
+  "description": "RevaMine Games - Instant games platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

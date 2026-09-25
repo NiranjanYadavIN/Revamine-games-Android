@@ -78,6 +78,27 @@ class PrefsStore(context: Context) {
 
     fun currentStreak(): Int = prefs.getInt(KEY_STREAK, 0)
 
+    // ---------------------------------------------------------------- Recently Played
+    fun recordRecentlyPlayed(gameId: String) {
+        val current = recentlyPlayedIds().toMutableList()
+        current.remove(gameId)
+        current.add(0, gameId)
+        val trimmed = current.take(12).joinToString(",")
+        prefs.edit { putString(KEY_RECENTLY_PLAYED, trimmed) }
+    }
+
+    fun recentlyPlayedIds(): List<String> {
+        val raw = prefs.getString(KEY_RECENTLY_PLAYED, "") ?: ""
+        return if (raw.isBlank()) emptyList() else raw.split(",").filter { it.isNotBlank() }
+    }
+
+    // ---------------------------------------------------------------- Offline Cache
+    fun getCachedGamesJson(): String? = prefs.getString(KEY_CACHED_GAMES_JSON, null)
+
+    fun saveCachedGamesJson(json: String) {
+        prefs.edit { putString(KEY_CACHED_GAMES_JSON, json) }
+    }
+
     private fun dayStamp(): Int {
         val cal = Calendar.getInstance()
         return cal.get(Calendar.YEAR) * 1000 + cal.get(Calendar.DAY_OF_YEAR)
@@ -90,5 +111,7 @@ class PrefsStore(context: Context) {
         private const val KEY_ADS_REMOVED = "ads_removed"
         private const val KEY_LAST_VISIT_DAY = "last_visit_day"
         private const val KEY_STREAK = "daily_streak"
+        private const val KEY_RECENTLY_PLAYED = "recently_played_games"
+        private const val KEY_CACHED_GAMES_JSON = "cached_games_json"
     }
 }

@@ -1,18 +1,19 @@
 package com.revamine.games.ui.components
 
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,96 +21,131 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.revamine.games.data.Game
+import coil.request.ImageRequest
+import com.revamine.games.data.GameItem
+import com.revamine.games.ui.theme.RevaAmberAccent
+import com.revamine.games.ui.theme.RevaEmeraldAccent
+import com.revamine.games.ui.theme.RevaIndigoPrimary
+import com.revamine.games.ui.theme.RevaRoseAccent
+import com.revamine.games.ui.theme.RevaTealAccent
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GameCard(
-    game: Game,
+    game: GameItem,
     isFavorite: Boolean,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+
     Surface(
         modifier = modifier
-            .aspectRatio(0.78f)
-            .clip(RoundedCornerShape(18.dp)),
-        color = MaterialTheme.colorScheme.surface,
-        onClick = onClick
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggleFavorite()
+                    val msg = if (!isFavorite) {
+                        "Added \"${game.shortTitle}\" to Favorites ❤️"
+                    } else {
+                        "Removed \"${game.shortTitle}\" from Favorites"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                }
+            ),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(18.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = game.coverUrl,
-                contentDescription = game.title,
-                modifier = Modifier.fillMaxSize()
-            )
-
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 1:1 Square Cover Image (100% clean & open, zero buttons covering the artwork)
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
-                            startY = 140f
-                        )
-                    )
-            )
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(game.coverUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = game.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            if (game.badge.isNotBlank()) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        text = game.badge,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                // Sleek, Ultra-Compact Dynamic Badge
+                if (!game.badge.isNullOrBlank()) {
+                    val badgeBg = getBadgeColor(game.badge, game.badgeColor)
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(5.dp),
+                        color = badgeBg,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = game.badge.uppercase(),
+                            modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp),
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 8.sp,
+                            letterSpacing = 0.2.sp
+                        )
+                    }
                 }
             }
 
-            IconButton(
-                onClick = onToggleFavorite,
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = if (isFavorite) MaterialTheme.colorScheme.secondary else Color.White
-                )
-            }
+            Spacer(modifier = Modifier.height(7.dp))
 
-            Column(
+            // Centered Bold Game Title (Exact website style)
+            Text(
+                text = game.shortTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.5.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(10.dp)
-            ) {
-                Text(
-                    text = game.shortTitle,
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = game.category.label,
-                    color = Color.White.copy(alpha = 0.75f),
-                    maxLines = 1,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
+            )
         }
+    }
+}
+
+private fun getBadgeColor(badge: String, badgeColor: String?): Color {
+    val b = badge.uppercase().trim()
+    val c = badgeColor?.lowercase() ?: ""
+    return when {
+        b.contains("TRENDING") || c.contains("teal") || c.contains("cyan") -> RevaTealAccent
+        b.contains("POPULAR") || c.contains("emerald") || c.contains("green") -> RevaEmeraldAccent
+        b.contains("NEW") || c.contains("amber") || c.contains("yellow") -> RevaAmberAccent
+        b.contains("HOT") || b.contains("FLAGSHIP") || c.contains("rose") || c.contains("red") -> RevaRoseAccent
+        else -> RevaIndigoPrimary
     }
 }

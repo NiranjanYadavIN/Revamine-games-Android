@@ -7,23 +7,29 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColors = darkColorScheme(
-    primary = RevaVioletPrimary,
-    secondary = RevaAmberAccent,
+    primary = RevaIndigoPrimary,
+    secondary = RevaRoseAccent,
     tertiary = RevaEmeraldAccent,
     background = RevaBgDark,
     surface = RevaSurfaceDark,
+    surfaceVariant = RevaCardDark,
+    outline = RevaBorderDark,
     onBackground = RevaTextDark,
-    onSurface = RevaTextDark
+    onSurface = RevaTextDark,
+    onSurfaceVariant = RevaTextMutedDark
 )
 
 private val LightColors = lightColorScheme(
-    primary = RevaVioletPrimary,
-    secondary = RevaAmberAccent,
+    primary = RevaIndigoPrimary,
+    secondary = RevaRoseAccent,
     tertiary = RevaEmeraldAccent,
     background = RevaBgLight,
     surface = RevaSurfaceLight,
+    surfaceVariant = RevaCardLight,
+    outline = RevaBorderLight,
     onBackground = RevaTextLight,
-    onSurface = RevaTextLight
+    onSurface = RevaTextLight,
+    onSurfaceVariant = RevaTextMutedLight
 )
 
 @Composable
