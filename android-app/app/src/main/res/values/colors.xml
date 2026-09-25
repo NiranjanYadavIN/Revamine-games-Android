@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="reva_violet">#7C3AED</color>
+    <color name="reva_amber">#F59E0B</color>
+    <color name="reva_emerald">#10B981</color>
+    <color name="reva_bg_light">#F4F6F9</color>
+    <color name="reva_bg_dark">#0B0C13</color>
+    <color name="reva_splash_bg">#0B0C13</color>
+</resources>

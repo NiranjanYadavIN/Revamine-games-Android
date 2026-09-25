@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple game-controller glyph as placeholder launcher art -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,46 h10 v8 h8 v10 h-8 v8 h-10 v-8 h-8 v-10 h8 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M25,40 h58 a14,14 0 0 1 14,14 v16 a14,14 0 0 1 -14,14 h-3 l-9,-10 h-24 l-9,10 h-13 a14,14 0 0 1 -14,-14 v-16 a14,14 0 0 1 14,-14 z M78,52 a5,5 0 1 0 0.1,0 z M90,58 a5,5 0 1 0 0.1,0 z" />
+</vector>
