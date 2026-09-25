@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -117,12 +118,16 @@ fun ExploreScreen(
                 }
             }
         } else {
-            // Dynamic featured game from Sheet / API
-            val featured = games.firstOrNull { it.featured } ?: games.firstOrNull()
+            // Dynamic featured game from Sheet / API (memoized for 60-120fps smooth scrolling)
+            val featured = remember(games) {
+                games.firstOrNull { it.featured } ?: games.firstOrNull()
+            }
 
-            val filtered = games.filter { game ->
-                selectedCategory == "all" ||
-                    game.category.equals(selectedCategory, ignoreCase = true)
+            val filtered = remember(games, selectedCategory) {
+                games.filter { game ->
+                    selectedCategory == "all" ||
+                        game.category.equals(selectedCategory, ignoreCase = true)
+                }
             }
 
             LazyVerticalGrid(
@@ -134,18 +139,18 @@ fun ExploreScreen(
             ) {
                 // 1. Featured Hero Banner
                 if (featured != null && selectedCategory == "all") {
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(2) }, key = "featured_hero") {
                         HeroBanner(game = featured, onClick = { onPlayGame(featured) })
                     }
                 }
 
                 // 2. Category Filter Pills (Website style horizontal scrolling)
-                item(span = { GridItemSpan(2) }) {
+                item(span = { GridItemSpan(2) }, key = "categories_row") {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
-                        items(categories) { catKey ->
+                        items(categories, key = { it }) { catKey ->
                             val label = if (catKey == "all") "All Games" else catKey.replaceFirstChar { it.uppercase() }
                             CategoryChip(
                                 label = label,
@@ -158,7 +163,11 @@ fun ExploreScreen(
                 }
 
                 // 3. 2-Column Game Cards Grid
-                items(filtered, key = { it.id }) { game ->
+                items(
+                    items = filtered,
+                    key = { it.id },
+                    contentType = { "game_card" }
+                ) { game ->
                     GameCard(
                         game = game,
                         isFavorite = favorites.contains(game.id),
@@ -190,10 +199,12 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                 .aspectRatio(1.78f)
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(game.coverUrl)
-                    .crossfade(true)
-                    .build(),
+                model = remember(game.coverUrl) {
+                    ImageRequest.Builder(context)
+                        .data(game.coverUrl)
+                        .crossfade(true)
+                        .build()
+                },
                 contentDescription = game.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -219,32 +230,32 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(12.dp),
+                    .padding(10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // FEATURED GAME Pill
+                // FEATURED GAME Pill (Sleek, low-profile height)
                 Surface(
                     color = RevaFeaturedRose,
                     shape = RoundedCornerShape(50)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.5.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.AutoAwesome,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(10.dp)
                         )
                         Text(
                             text = "FEATURED GAME",
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 10.sp,
-                            letterSpacing = 0.4.sp
+                            fontSize = 8.5.sp,
+                            letterSpacing = 0.3.sp
                         )
                     }
                 }

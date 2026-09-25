@@ -6,7 +6,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,7 +59,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.revamine.games.ads.AdMobManager
 import com.revamine.games.data.GameItem
 import com.revamine.games.data.GamesRepository
 import com.revamine.games.data.PrefsStore
@@ -65,6 +67,7 @@ import com.revamine.games.ui.screens.CategoriesScreen
 import com.revamine.games.ui.screens.ExploreScreen
 import com.revamine.games.ui.screens.FavoritesScreen
 import com.revamine.games.ui.screens.ProfileScreen
+import com.revamine.games.ui.screens.SplashScreen
 import com.revamine.games.ui.stage.GameStageActivity
 import com.revamine.games.ui.theme.RevaIndigoLight
 import com.revamine.games.ui.theme.RevaIndigoPrimary
@@ -81,30 +84,50 @@ private enum class BottomTab(val label: String) {
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+            splashScreenViewProvider.remove()
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val prefs = PrefsStore(this)
         val repository = GamesRepository(this, prefs)
-        AdMobManager.preloadAll(this)
         val streak = prefs.registerDailyVisitAndGetStreak()
 
         setContent {
-            var isDarkTheme by remember { mutableStateOf(prefs.isDarkTheme) }
+            val systemDark = isSystemInDarkTheme()
+            var userThemeOverride by remember {
+                mutableStateOf(if (prefs.hasUserThemeChoice) prefs.isDarkTheme else null)
+            }
+            val isDarkTheme = userThemeOverride ?: systemDark
+            var showSplash by remember { mutableStateOf(true) }
 
             RevaMineGamesTheme(darkTheme = isDarkTheme) {
-                RevaMineApp(
-                    repository = repository,
-                    prefs = prefs,
-                    streak = streak,
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = {
-                        isDarkTheme = it
-                        prefs.isDarkTheme = it
-                    },
-                    onPlayGame = { game -> launchGame(game, prefs) }
-                )
+                Crossfade(
+                    targetState = showSplash,
+                    animationSpec = tween(450),
+                    label = "splash_crossfade"
+                ) { isSplash ->
+                    if (isSplash) {
+                        SplashScreen(
+                            isDarkTheme = isDarkTheme,
+                            onSplashFinished = { showSplash = false }
+                        )
+                    } else {
+                        RevaMineApp(
+                            repository = repository,
+                            prefs = prefs,
+                            streak = streak,
+                            isDarkTheme = isDarkTheme,
+                            onToggleTheme = {
+                                userThemeOverride = it
+                                prefs.isDarkTheme = it
+                            },
+                            onPlayGame = { game -> launchGame(game, prefs) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -135,7 +158,6 @@ private fun RevaMineApp(
     var searchQuery by remember { mutableStateOf("") }
     var favorites by remember { mutableStateOf(prefs.favoriteIds()) }
     var isMuted by remember { mutableStateOf(prefs.isMuted) }
-    var isAdsRemoved by remember { mutableStateOf(prefs.isAdsRemoved) }
     var showMenuSheet by remember { mutableStateOf(false) }
 
     var games by remember { mutableStateOf<List<GameItem>>(emptyList()) }
@@ -275,19 +297,15 @@ private fun RevaMineApp(
                 )
 
                 BottomTab.PROFILE -> ProfileScreen(
-                    prefs = prefs,
                     streak = streak,
+                    favoritesCount = favorites.size,
+                    recentlyPlayedCount = prefs.recentlyPlayedIds().size,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
                     isMuted = isMuted,
                     onToggleMute = {
                         isMuted = it
                         prefs.isMuted = it
-                    },
-                    isAdsRemoved = isAdsRemoved,
-                    onRemoveAdsClick = {
-                        isAdsRemoved = true
-                        prefs.isAdsRemoved = true
                     }
                 )
             }

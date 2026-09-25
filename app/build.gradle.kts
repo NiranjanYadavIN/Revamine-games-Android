@@ -1,18 +1,11 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-
-// ---------------------------------------------------------------------------
-// AdMob IDs
-// Abhi Google ke official TEST IDs lage hain (development ke liye safe).
-// Play Store par release se PEHLE apni real AdMob IDs yahan badal do.
-// ---------------------------------------------------------------------------
-val admobAppId = "ca-app-pub-3940256099942544~3347511713"
-val admobBannerId = "ca-app-pub-3940256099942544/6300978111"
-val admobInterstitialId = "ca-app-pub-3940256099942544/1033173712"
-val admobRewardedId = "ca-app-pub-3940256099942544/5224354917"
 
 android {
     namespace = "com.revamine.games"
@@ -24,11 +17,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
-
-        manifestPlaceholders["admobAppId"] = admobAppId
-        buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
-        buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"$admobInterstitialId\"")
-        buildConfigField("String", "ADMOB_REWARDED_ID", "\"$admobRewardedId\"")
     }
 
     signingConfigs {
@@ -37,6 +25,42 @@ android {
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+        }
+
+        // Smart Release Keystore Auto-Detection
+        val keystorePropertiesFile = rootProject.file("keystore.properties")
+        val keystoreProps = Properties().apply {
+            if (keystorePropertiesFile.exists()) {
+                keystorePropertiesFile.inputStream().use { load(it) }
+            }
+        }
+
+        // Automatically detect any uploaded .jks or .keystore file in project or app folder
+        val detectedKeyFile = listOf(
+            rootProject.file("release.jks"),
+            rootProject.file("keystore.jks"),
+            project.file("release.jks"),
+            project.file("keystore.jks")
+        ).firstOrNull { it.exists() }
+            ?: rootDir.listFiles()?.firstOrNull { it.extension in listOf("jks", "keystore") && it.name != "debug.keystore" }
+            ?: projectDir.listFiles()?.firstOrNull { it.extension in listOf("jks", "keystore") && it.name != "debug.keystore" }
+
+        if (detectedKeyFile != null) {
+            create("release") {
+                storeFile = detectedKeyFile
+                storePassword = keystoreProps.getProperty("storePassword")
+                    ?: System.getenv("KEYSTORE_PASSWORD")
+                    ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
+                    ?: ""
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                    ?: System.getenv("KEY_ALIAS")
+                    ?: (project.findProperty("KEY_ALIAS") as? String)
+                    ?: ""
+                keyPassword = keystoreProps.getProperty("keyPassword")
+                    ?: System.getenv("KEY_PASSWORD")
+                    ?: (project.findProperty("KEY_PASSWORD") as? String)
+                    ?: storePassword
+            }
         }
     }
 
@@ -51,6 +75,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfigs.findByName("release")?.let {
+                signingConfig = it
+            }
         }
     }
 
@@ -97,6 +124,4 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
 }

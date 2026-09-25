@@ -8,7 +8,6 @@ import android.os.VibratorManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
-import com.revamine.games.ads.AdMobManager
 import com.revamine.games.data.PrefsStore
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -62,7 +61,7 @@ class RevaMineNativeBridge(
         vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
-    // ------------------------------------------------------------ Rewarded Ad
+    // ------------------------------------------------------------ Rewarded Ad (Ad-free: instant reward)
     @JavascriptInterface
     fun showRewardedAd(optionsJson: String) {
         val activity = activityRef.get() ?: return
@@ -70,26 +69,14 @@ class RevaMineNativeBridge(
             .getOrDefault("revive")
 
         activity.runOnUiThread {
-            AdMobManager.showRewarded(
-                activity = activity,
-                rewardType = rewardType,
-                onSuccess = { type, amount ->
-                    runJs("window._revaMineRewardSuccess && window._revaMineRewardSuccess(${jsString(type)}, $amount);")
-                },
-                onFailure = { reason ->
-                    runJs("window._revaMineRewardFailure && window._revaMineRewardFailure(${jsString(reason)});")
-                }
-            )
+            runJs("window._revaMineRewardSuccess && window._revaMineRewardSuccess(${jsString(rewardType)}, 1);")
         }
     }
 
-    // ------------------------------------------------------------ Interstitial Ad
+    // ------------------------------------------------------------ Interstitial Ad (Ad-free: no-op)
     @JavascriptInterface
     fun showInterstitialAd(placement: String) {
-        val activity = activityRef.get() ?: return
-        activity.runOnUiThread {
-            AdMobManager.showInterstitial(activity)
-        }
+        // Ads removed: no-op to keep seamless gaming experience
     }
 
     // ------------------------------------------------------------ Game lifecycle

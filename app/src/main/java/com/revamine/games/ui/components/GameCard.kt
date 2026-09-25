@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,32 +89,36 @@ fun GameCard(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
             ) {
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(game.coverUrl)
-                        .crossfade(true)
-                        .build(),
+                    model = remember(game.coverUrl) {
+                        ImageRequest.Builder(context)
+                            .data(game.coverUrl)
+                            .crossfade(true)
+                            .build()
+                    },
                     contentDescription = game.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Sleek, Ultra-Compact Dynamic Badge
+                // Sleek, Ultra-Slim Compact Dynamic Badge (Reduced height, tanik matra)
                 if (!game.badge.isNullOrBlank()) {
                     val badgeBg = getBadgeColor(game.badge, game.badgeColor)
-                    Surface(
+                    Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(5.dp),
-                        color = badgeBg,
-                        shape = RoundedCornerShape(4.dp)
+                            .padding(start = 5.dp, top = 5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(badgeBg)
+                            .padding(horizontal = 4.5.dp, vertical = 1.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = game.badge.uppercase(),
-                            modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp),
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 8.sp,
-                            letterSpacing = 0.2.sp
+                            fontSize = 7.5.sp,
+                            lineHeight = 8.sp,
+                            letterSpacing = 0.3.sp
                         )
                     }
                 }

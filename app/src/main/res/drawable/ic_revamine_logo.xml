@@ -24,36 +24,36 @@
         </aapt:attr>
     </path>
 
-    <!-- 2. Controller Outer Rounded Rectangle (rect x=2 y=6 w=20 h=12 rx=4, scale=11 centered at 256,256) -->
+    <!-- 2. Controller Outer Rounded Rectangle -->
     <path
-        android:pathData="M 190,190 H 322 A 44,44 0 0 1 366,234 V 278 A 44,44 0 0 1 322,322 H 190 A 44,44 0 0 1 146,278 V 234 A 44,44 0 0 1 190,190 Z"
+        android:pathData="M 194,178 H 318 A 54,54 0 0 1 372,232 V 280 A 54,54 0 0 1 318,334 H 194 A 54,54 0 0 1 140,280 V 232 A 54,54 0 0 1 194,178 Z"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="22"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- 3. D-Pad (Cross: M6 12h4m-2-2v4 with stroke-width=2, scale=11) -->
+    <!-- 3. D-Pad (Thick Rounded Plus) -->
     <!-- Horizontal Cross Bar -->
     <path
-        android:pathData="M 190,256 H 234"
+        android:pathData="M 184,256 H 240"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="22"
         android:strokeLineCap="round" />
     <!-- Vertical Cross Bar -->
     <path
-        android:pathData="M 212,234 V 278"
+        android:pathData="M 212,228 V 284"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="22"
         android:strokeLineCap="round" />
 
-    <!-- 4. Action Buttons (Two Circles: cx=17, cy=10, r=1 and cx=15, cy=14, r=1, scale=11) -->
-    <!-- Top-Right Button (cx=311, cy=234, r=11) -->
+    <!-- 4. Action Buttons (Two solid white circles matching the uploaded logo) -->
+    <!-- Top-Right Button (cx=310, cy=235, r=22) -->
     <path
-        android:pathData="M 300,234 A 11,11 0 1,0 322,234 A 11,11 0 1,0 300,234 Z"
+        android:pathData="M 288,235 A 22,22 0 1,0 332,235 A 22,22 0 1,0 288,235 Z"
         android:fillColor="#FFFFFF" />
-    <!-- Bottom-Left Button (cx=289, cy=278, r=11) -->
+    <!-- Bottom-Left Button (cx=288, cy=281, r=22) -->
     <path
-        android:pathData="M 278,278 A 11,11 0 1,0 300,278 A 11,11 0 1,0 278,278 Z"
+        android:pathData="M 266,281 A 22,22 0 1,0 310,281 A 22,22 0 1,0 266,281 Z"
         android:fillColor="#FFFFFF" />
 
 </vector>

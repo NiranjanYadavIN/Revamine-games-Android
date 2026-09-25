@@ -50,9 +50,16 @@ class PrefsStore(context: Context) {
         get() = prefs.getBoolean(KEY_MUTED, false)
         set(value) = prefs.edit { putBoolean(KEY_MUTED, value) }
 
+    val hasUserThemeChoice: Boolean
+        get() = prefs.contains(KEY_DARK_THEME)
+
     var isDarkTheme: Boolean
-        get() = prefs.getBoolean(KEY_DARK_THEME, true)
+        get() = prefs.getBoolean(KEY_DARK_THEME, false)
         set(value) = prefs.edit { putBoolean(KEY_DARK_THEME, value) }
+
+    fun resetToAutoSystemTheme() {
+        prefs.edit { remove(KEY_DARK_THEME) }
+    }
 
     // ---------------------------------------------------------------- Ads
     var isAdsRemoved: Boolean

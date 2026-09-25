@@ -40,7 +40,7 @@ import com.revamine.games.ui.theme.RevaMineGamesTheme
 /**
  * Fullscreen "Game Stage" — hardware-accelerated WebView jo
  * gameUrl (e.g. games.revamine.com/game/{id}?mode=native) load karta hai aur
- * RevaMineNativeBridge inject karta hai (haptics, AdMob, scores).
+ * RevaMineNativeBridge inject karta hai (haptics, scores, rewards).
  */
 class GameStageActivity : ComponentActivity() {
 
