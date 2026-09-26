@@ -5,6 +5,7 @@
   },
   "remoteUser": "vscode",
   "containerEnv": {
+    "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
     "ANDROID_HOME": "/opt/android/sdk",
     "ANDROID_SDK_ROOT": "/opt/android/sdk"
   },
