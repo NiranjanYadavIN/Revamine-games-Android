@@ -8,6 +8,6 @@
 /captures
 .externalNativeBuild
 .cxx
-*.jks
-*.keystore
-keystore.properties
+# Keystore files
+# (release.jks and keystore.properties are included for automated Codespaces builds)
+
