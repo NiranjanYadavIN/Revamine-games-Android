@@ -31,15 +31,16 @@ chmod -R +x "$SDK_DIR/build-tools/36.0.0/" || true
 chmod -R +x "$SDK_DIR/platform-tools/" || true
 find "$HOME/.gradle" -name "aapt2" -exec chmod +x {} + 2>/dev/null || true
 
-# 3. Create local.properties in project root with exact SDK and AAPT2 path
+# 3. Create local.properties
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cat <<EOF > "$PROJECT_ROOT/local.properties"
 sdk.dir=$SDK_DIR
-android.aapt2FromMavenOverride=$SDK_DIR/build-tools/36.0.0/aapt2
 EOF
+
+# 4. Stop any hanging Gradle daemons
+./gradlew --stop 2>/dev/null || true
 
 echo ""
 echo "=== SUCCESS! ==="
 echo "Android SDK and AAPT2 configured at: $SDK_DIR"
-echo "Created: $PROJECT_ROOT/local.properties"
-echo "Now you can run: ./gradlew bundleRelease"
+echo "Now you can run: ./gradlew bundleRelease --no-daemon"
