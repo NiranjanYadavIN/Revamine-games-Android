@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "=== Android SDK Quick Setup for Codespaces ==="
+echo "=== Android SDK & AAPT2 Quick Setup for Codespaces ==="
 
 SDK_DIR="$HOME/android-sdk"
 mkdir -p "$SDK_DIR/cmdline-tools"
@@ -26,12 +26,20 @@ echo "Installing Android Platform 36 and Build-Tools..."
 yes | sdkmanager --licenses >/dev/null 2>&1 || true
 sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
-# 3. Create local.properties in project root
+# Ensure all binaries have execution permissions
+chmod -R +x "$SDK_DIR/build-tools/36.0.0/" || true
+chmod -R +x "$SDK_DIR/platform-tools/" || true
+find "$HOME/.gradle" -name "aapt2" -exec chmod +x {} + 2>/dev/null || true
+
+# 3. Create local.properties in project root with exact SDK and AAPT2 path
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "sdk.dir=$SDK_DIR" > "$PROJECT_ROOT/local.properties"
+cat <<EOF > "$PROJECT_ROOT/local.properties"
+sdk.dir=$SDK_DIR
+android.aapt2FromMavenOverride=$SDK_DIR/build-tools/36.0.0/aapt2
+EOF
 
 echo ""
 echo "=== SUCCESS! ==="
-echo "Android SDK configured at: $SDK_DIR"
+echo "Android SDK and AAPT2 configured at: $SDK_DIR"
 echo "Created: $PROJECT_ROOT/local.properties"
 echo "Now you can run: ./gradlew bundleRelease"
