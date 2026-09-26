@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
     git \
-    libncurses5 \
+    libncurses6 \
     openjdk-17-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
