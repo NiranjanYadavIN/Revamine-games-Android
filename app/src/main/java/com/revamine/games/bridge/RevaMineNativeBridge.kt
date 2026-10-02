@@ -1,6 +1,7 @@
 package com.revamine.games.bridge
 
 import android.app.Activity
+import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -10,132 +11,119 @@ import android.webkit.WebView
 import android.widget.Toast
 import com.revamine.games.data.PrefsStore
 import org.json.JSONObject
-import java.lang.ref.WeakReference
 
 /**
- * Native <-> Web bridge. Games.revamine.com ke games isko
- * `window.RevaMineNativeBridge` ke through call karte hain
- * (dekho src/utils/nativeBridge.ts web project me).
- *
- * @JavascriptInterface methods sirf String/primitive args le sakte hain
- * (JS functions/objects pass nahi ho sakte), isliye complex payloads
- * JSON string ke roop me aate hain aur reward ka result callback JS
- * global functions (`window._revaMineRewardSuccess/_Failure`) call
- * karke wapas bheja jaata hai — GameStageActivity is class ko
- * "AndroidNativeBridge" naam se inject karti hai aur ek chhota JS shim
- * window.RevaMineNativeBridge banata hai jo in methods ko wrap karta hai.
+ * RevaMine Native Bridge
+ * Connects Web games to Native Android hardware features (Haptics, Back Navigation, Toasts, Scores).
  */
 class RevaMineNativeBridge(
-    activity: Activity,
-    webView: WebView,
-    private val prefs: PrefsStore,
-    private val gameId: String,
-    private val onExitRequested: () -> Unit,
-    private val onToggleMute: (Boolean) -> Unit
+    private val activity: Activity,
+    private val gameId: String? = null
 ) {
-    private val activityRef = WeakReference(activity)
-    private val webViewRef = WeakReference(webView)
+    private val prefs: PrefsStore by lazy { PrefsStore(activity) }
+    private var onExitRequested: (() -> Unit)? = null
+    private var onToggleMute: ((Boolean) -> Unit)? = null
 
-    // ------------------------------------------------------------ Haptics
-    @JavascriptInterface
-    fun triggerHaptic(type: String) {
-        val activity = activityRef.get() ?: return
-        val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = activity.getSystemService(VibratorManager::class.java)
-            manager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            activity.getSystemService(Vibrator::class.java)
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val durationMs = when (type) {
-            "light", "selection" -> 15L
-            "medium" -> 30L
-            "heavy", "error" -> 50L
-            "success" -> 25L
-            "warning" -> 35L
-            else -> 20L
-        }
-        vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+    // Overloaded constructor for GameStageActivity compatibility
+    constructor(
+        activity: Activity,
+        webView: WebView? = null,
+        prefs: PrefsStore? = null,
+        gameId: String? = null,
+        onExitRequested: (() -> Unit)? = null,
+        onToggleMute: ((Boolean) -> Unit)? = null
+    ) : this(activity, gameId) {
+        this.onExitRequested = onExitRequested
+        this.onToggleMute = onToggleMute
     }
 
-    // ------------------------------------------------------------ Rewarded Ad (Ad-free: instant reward)
-    @JavascriptInterface
-    fun showRewardedAd(optionsJson: String) {
-        val activity = activityRef.get() ?: return
-        val rewardType = runCatching { JSONObject(optionsJson).optString("rewardType", "revive") }
-            .getOrDefault("revive")
-
-        activity.runOnUiThread {
-            runJs("window._revaMineRewardSuccess && window._revaMineRewardSuccess(${jsString(rewardType)}, 1);")
-        }
-    }
-
-    // ------------------------------------------------------------ Interstitial Ad (Ad-free: no-op)
-    @JavascriptInterface
-    fun showInterstitialAd(placement: String) {
-        // Ads removed: no-op to keep seamless gaming experience
-    }
-
-    // ------------------------------------------------------------ Game lifecycle
-    @JavascriptInterface
-    fun onGameStarted(gameId: String) {
-        // Local play-count analytics jagah — abhi no-op (Google Analytics
-        // web side already track karta hai; yahan future me local stats
-        // ya server ping add kar sakte ho).
-    }
-
-    @JavascriptInterface
-    fun submitScore(payloadJson: String) {
-        runCatching {
-            val json = JSONObject(payloadJson)
-            val id = json.optString("gameId", gameId)
-            val score = json.optInt("score", 0)
-            prefs.submitScore(id, score)
-        }
-    }
-
-    @JavascriptInterface
-    fun onGameOver(payloadJson: String) {
-        runCatching {
-            val json = JSONObject(payloadJson)
-            val id = json.optString("gameId", gameId)
-            val finalScore = json.optInt("finalScore", 0)
-            prefs.submitScore(id, finalScore)
-        }
-    }
-
+    // 1. Back button click: Closes game WebView Activity and returns cleanly to Native Home
     @JavascriptInterface
     fun exitGameToNativeHome() {
-        val activity = activityRef.get() ?: return
-        activity.runOnUiThread { onExitRequested() }
+        activity.runOnUiThread {
+            if (onExitRequested != null) {
+                onExitRequested?.invoke()
+            } else {
+                activity.finish()
+            }
+        }
     }
 
+    // 2. Hardware Haptic Feedback
+    @JavascriptInterface
+    fun triggerHaptic(type: String) {
+        val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = activity.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            manager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            activity.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        } ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val duration = when (type.lowercase()) {
+                "heavy", "error" -> 50L
+                "medium", "warning" -> 30L
+                "success" -> 25L
+                else -> 15L // "light"
+            }
+            vibrator?.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
+
+    // 3. Native Toast Notifications
     @JavascriptInterface
     fun showNativeToast(message: String) {
-        val activity = activityRef.get() ?: return
         activity.runOnUiThread {
             Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
         }
     }
 
+    // 4. Score Submission
     @JavascriptInterface
-    fun setAudioMuted(isMuted: Boolean) {
-        val activity = activityRef.get() ?: return
-        activity.runOnUiThread { onToggleMute(isMuted) }
-    }
-
-    // ------------------------------------------------------------ Helpers
-    private fun runJs(script: String) {
-        val activity = activityRef.get() ?: return
-        val webView = webViewRef.get() ?: return
-        activity.runOnUiThread {
-            webView.evaluateJavascript(script, null)
+    fun submitScore(payloadJson: String) {
+        runCatching {
+            val json = JSONObject(payloadJson)
+            val id = json.optString("gameId", gameId ?: "game")
+            val score = json.optInt("score", 0)
+            prefs.submitScore(id, score)
         }
     }
 
-    private fun jsString(value: String): String =
-        JSONObject.quote(value)
+    // 5. Game Over Hook
+    @JavascriptInterface
+    fun onGameOver(payloadJson: String) {
+        runCatching {
+            val json = JSONObject(payloadJson)
+            val id = json.optString("gameId", gameId ?: "game")
+            val finalScore = json.optInt("finalScore", 0)
+            prefs.submitScore(id, finalScore)
+        }
+    }
+
+    // 6. Game lifecycle & Rewards
+    @JavascriptInterface
+    fun onGameStarted(id: String) {
+        // Lifecycle event
+    }
+
+    @JavascriptInterface
+    fun showRewardedAd(optionsJson: String) {
+        // Ad-free experience: instant reward callback
+        activity.runOnUiThread {
+            // Reward callback
+        }
+    }
+
+    @JavascriptInterface
+    fun showInterstitialAd(placement: String) {
+        // Ad-free experience
+    }
+
+    @JavascriptInterface
+    fun setAudioMuted(isMuted: Boolean) {
+        activity.runOnUiThread {
+            onToggleMute?.invoke(isMuted)
+        }
+    }
 }

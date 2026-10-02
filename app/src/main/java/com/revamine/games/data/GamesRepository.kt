@@ -2,6 +2,10 @@ package com.revamine.games.data
 
 import android.content.Context
 import android.util.Log
+import com.revamine.games.model.FeedResponse
+import com.revamine.games.model.GameItem
+import com.revamine.games.model.RecommendationsResponse
+import com.revamine.games.network.ApiClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -26,7 +30,6 @@ class GamesRepository(
         const val R2_COVERS_BASE = "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers"
         const val GOOGLE_SHEET_ID = "1CG_awisqeGUP-gCeGJOuSTKuT0Lll6G566UXt-oI3mQ"
         const val GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/$GOOGLE_SHEET_ID/gviz/tq?tqx=out:json"
-        const val PRIMARY_API_URL = "https://games.revamine.com/api/games"
 
         fun normalizeGameId(id: String): String {
             val s = id.lowercase().trim()
@@ -80,44 +83,98 @@ class GamesRepository(
     }
 
     /**
-     * Fetches games dynamically.
-     * 1. Primary: Fetches live games from REST API endpoint: GET https://games.revamine.com/api/games
-     * 2. Secondary: Synchronizes with live Google Sheet for real-time config updates if REST API is offline.
-     * 3. Fallback: Reads locally cached JSON if network is unreachable, or asset bundle.
+     * Fetches dynamic home feed via Retrofit from RevaMine Cloud Games Engine
+     * (/api/feed with fallback to Google Sheet and offline cache).
      */
-    suspend fun fetchGames(forceRefresh: Boolean = false): List<GameItem> = withContext(Dispatchers.IO) {
-        // 1. Try REST API endpoint FIRST (GET https://games.revamine.com/api/games)
+    suspend fun fetchFeed(
+        category: String? = null,
+        page: Int = 1,
+        limit: Int = 12,
+        sort: String? = null
+    ): FeedResponse = withContext(Dispatchers.IO) {
+        // 1. Primary: RevaMine Cloud Games Engine Feed API
         try {
-            val request = Request.Builder()
-                .url(PRIMARY_API_URL)
-                .header("Accept", "application/json")
-                .header("User-Agent", "RevaMineGames-Android/1.0")
-                .get()
-                .build()
+            val queryCat = if (category == "all" || category.isNullOrBlank()) null else category
+            val response = ApiClient.apiService.getFeed(
+                category = queryCat,
+                page = page,
+                limit = limit,
+                sort = sort
+            )
 
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (!body.isNullOrBlank() && body.trim().startsWith("{")) {
-                        val parsed = parseGamesJson(body)
-                        if (parsed != null && parsed.games.isNotEmpty()) {
-                            val normalized = parsed.games.map { g ->
-                                g.copy(coverUrl = normalizeCoverUrl(g.coverUrl, g.id))
-                            }
-                            prefs.saveCachedGamesJson(serializeGamesToJson(normalized))
-                            Log.d(TAG, "Successfully fetched ${normalized.size} games from REST API ($PRIMARY_API_URL)")
-                            return@withContext normalized
-                        }
-                    }
+            if (response.games.isNotEmpty() || response.featuredGame != null) {
+                val normalizedGames = response.games.map { g ->
+                    g.copy(coverUrl = normalizeCoverUrl(g.coverUrl, g.id))
+                }
+                val normalizedFeatured = response.featuredGame?.let { f ->
+                    f.copy(coverUrl = normalizeCoverUrl(f.coverUrl, f.id))
+                }
+                val normalizedTrending = response.trendingGames?.map { t ->
+                    t.copy(coverUrl = normalizeCoverUrl(t.coverUrl, t.id))
+                }
+
+                val fullResponse = response.copy(
+                    featuredGame = normalizedFeatured,
+                    trendingGames = normalizedTrending,
+                    games = normalizedGames
+                )
+
+                // Cache for offline resilience
+                prefs.saveCachedGamesJson(serializeGamesToJson(normalizedGames))
+                Log.d(TAG, "Successfully fetched feed from Retrofit API (${normalizedGames.size} games)")
+                return@withContext fullResponse
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Retrofit API /api/feed call failed: ${e.message}")
+        }
+
+        // 2. Secondary: Fallback to existing Games endpoint / Google Sheet
+        val fallbackGames = fetchGames()
+        val featured = fallbackGames.firstOrNull { it.featured } ?: fallbackGames.firstOrNull()
+
+        FeedResponse(
+            status = "success",
+            platform = "RevaMine Local Engine (Offline/Fallback)",
+            featuredGame = featured,
+            trendingGames = fallbackGames.take(4),
+            categories = listOf(
+                com.revamine.games.model.CategoryItem("all", "All Games", "Grid"),
+                com.revamine.games.model.CategoryItem("arcade", "Arcade", "Zap"),
+                com.revamine.games.model.CategoryItem("puzzle", "Puzzle", "Layers"),
+                com.revamine.games.model.CategoryItem("action", "Action", "Flame")
+            ),
+            pagination = com.revamine.games.model.PaginationInfo(1, fallbackGames.size, fallbackGames.size, false),
+            total = fallbackGames.size,
+            games = fallbackGames
+        )
+    }
+
+    /**
+     * Recommendations for Game Detail Screen
+     */
+    suspend fun fetchRecommendations(gameId: String, limit: Int = 4): List<GameItem> = withContext(Dispatchers.IO) {
+        try {
+            val response = ApiClient.apiService.getRecommendations(gameId = gameId, limit = limit)
+            if (response.recommendations.isNotEmpty()) {
+                return@withContext response.recommendations.map { g ->
+                    g.copy(coverUrl = normalizeCoverUrl(g.coverUrl, g.id))
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "REST API sync failed: ${e.message}")
+            Log.w(TAG, "Failed to fetch recommendations: ${e.message}")
         }
 
+        // Fallback: Other games excluding target
+        fetchGames().filter { it.id != gameId }.take(limit)
+    }
+
+    /**
+     * Backward-compatible games fetch method with Google Sheet and Offline Cache.
+     */
+    suspend fun fetchGames(forceRefresh: Boolean = false): List<GameItem> = withContext(Dispatchers.IO) {
         val baseGames = loadBaseGames()
 
-        // 2. Try syncing with live Google Sheet (backup live database)
+        // 1. Try Google Sheet sync
         try {
             val liveGames = syncWithGoogleSheet(baseGames)
             if (liveGames.isNotEmpty()) {
@@ -130,7 +187,7 @@ class GamesRepository(
             Log.w(TAG, "Google Sheet sync failed: ${e.message}")
         }
 
-        // 3. Fallback to cached games if network is unreachable
+        // 2. Fallback to cached games
         val cachedJson = prefs.getCachedGamesJson()
         if (!cachedJson.isNullOrBlank()) {
             val cached = parseGamesJson(cachedJson)
@@ -158,9 +215,6 @@ class GamesRepository(
         return loadGamesFromAssets()
     }
 
-    /**
-     * Parses Google Sheet visualization table response and updates base games
-     */
     private fun syncWithGoogleSheet(baseGames: List<GameItem>): List<GameItem> {
         val request = Request.Builder()
             .url(GOOGLE_SHEET_URL)
@@ -222,10 +276,8 @@ class GamesRepository(
                 val normId = normalizeGameId(base.id)
                 val sheet = sheetMap[normId]
                 if (sheet != null && sheet.status.equals("Hidden", ignoreCase = true)) {
-                    null // Exclude hidden games
+                    null
                 } else if (sheet != null) {
-                    // Google Sheet is the master source of truth.
-                    // If the badge cell is empty in Google Sheet, show NO badge (null).
                     val updatedBadge = sheet.badge?.takeIf { it.isNotBlank() }
                     base.copy(
                         badge = updatedBadge,
@@ -252,12 +304,12 @@ class GamesRepository(
             val obj = JSONObject()
             obj.put("id", g.id)
             obj.put("title", g.title)
-            obj.put("shortTitle", g.shortTitle)
+            obj.put("shortTitle", g.shortTitle ?: g.title)
             obj.put("category", g.category)
             obj.put("coverUrl", normalizeCoverUrl(g.coverUrl, g.id))
             if (g.badge != null) obj.put("badge", g.badge)
             if (g.badgeColor != null) obj.put("badgeColor", g.badgeColor)
-            obj.put("tagline", g.tagline)
+            obj.put("tagline", g.tagline ?: "")
             obj.put("order", g.order)
             obj.put("featured", g.featured)
             obj.put("gameUrl", g.gameUrl)
@@ -267,7 +319,7 @@ class GamesRepository(
         return root.toString()
     }
 
-    private fun parseGamesJson(jsonStr: String): GamesResponse? {
+    private fun parseGamesJson(jsonStr: String): FeedResponse? {
         return try {
             val root = JSONObject(jsonStr)
             val status = root.optString("status", "success")
@@ -311,7 +363,7 @@ class GamesRepository(
                     )
                 )
             }
-            GamesResponse(status = status, total = total, games = list.sortedBy { it.order })
+            FeedResponse(status = status, total = total, games = list.sortedBy { it.order })
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse JSON: ${e.message}")
             null

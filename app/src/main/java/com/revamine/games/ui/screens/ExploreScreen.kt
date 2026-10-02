@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -24,16 +25,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -53,22 +51,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.revamine.games.data.GameItem
+import com.revamine.games.model.GameItem
 import com.revamine.games.ui.components.CategoryChip
 import com.revamine.games.ui.components.GameCard
 import com.revamine.games.ui.components.GamesShimmerGrid
-import com.revamine.games.ui.theme.RevaAmberAccent
-import com.revamine.games.ui.theme.RevaEmeraldAccent
 import com.revamine.games.ui.theme.RevaFeaturedRose
-import com.revamine.games.ui.theme.RevaIndigoLight
-import com.revamine.games.ui.theme.RevaIndigoPrimary
 import com.revamine.games.ui.theme.RevaRoseAccent
-import com.revamine.games.ui.theme.RevaTealAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
     games: List<GameItem>,
+    featuredGame: GameItem? = null,
+    trendingGames: List<GameItem> = emptyList(),
     isLoading: Boolean,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
@@ -118,9 +113,9 @@ fun ExploreScreen(
                 }
             }
         } else {
-            // Dynamic featured game from Sheet / API (memoized for 60-120fps smooth scrolling)
-            val featured = remember(games) {
-                games.firstOrNull { it.featured } ?: games.firstOrNull()
+            // Dynamic featured game from Engine Feed or Sheet fallback
+            val featured = remember(games, featuredGame) {
+                featuredGame ?: games.firstOrNull { it.featured } ?: games.firstOrNull()
             }
 
             val filtered = remember(games, selectedCategory) {
@@ -144,7 +139,7 @@ fun ExploreScreen(
                     }
                 }
 
-                // 2. Category Filter Pills (Website style horizontal scrolling)
+                // 2. Category Filter Pills
                 item(span = { GridItemSpan(2) }, key = "categories_row") {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -162,7 +157,42 @@ fun ExploreScreen(
                     }
                 }
 
-                // 3. 2-Column Game Cards Grid
+                // 3. Trending Games Carousel (when on "All Games")
+                if (selectedCategory == "all" && trendingGames.isNotEmpty()) {
+                    item(span = { GridItemSpan(2) }, key = "trending_row") {
+                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Trending Hits",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(trendingGames, key = { "trend_${it.id}" }) { tGame ->
+                                    TrendingCard(
+                                        game = tGame,
+                                        onClick = { onPlayGame(tGame) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4. Main 2-Column Games Grid (12 Games)
                 items(
                     items = filtered,
                     key = { it.id },
@@ -176,6 +206,65 @@ fun ExploreScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TrendingCard(game: GameItem, onClick: () -> Unit) {
+    val context = LocalContext.current
+    Surface(
+        modifier = Modifier
+            .width(135.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+            ) {
+                AsyncImage(
+                    model = remember(game.coverUrl) {
+                        ImageRequest.Builder(context)
+                            .data(game.coverUrl)
+                            .crossfade(true)
+                            .build()
+                    },
+                    contentDescription = game.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (!game.badge.isNullOrBlank()) {
+                    Surface(
+                        color = Color(0xFFFF1744),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                    ) {
+                        Text(
+                            text = game.badge,
+                            color = Color.White,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+            Text(
+                text = game.shortTitle ?: game.title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            )
         }
     }
 }
@@ -210,7 +299,7 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Multi-stop gradient: leaves the center bright and vivid, darkens top for badges and bottom for text
+            // Multi-stop gradient: leaves center bright and darkens top and bottom
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -226,7 +315,7 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                     )
             )
 
-            // Top Badges Row (FEATURED GAME + Sheet Badge)
+            // Top Badges Row
             Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -234,7 +323,6 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // FEATURED GAME Pill (Sleek, low-profile height)
                 Surface(
                     color = RevaFeaturedRose,
                     shape = RoundedCornerShape(50)
@@ -256,6 +344,21 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 8.5.sp,
                             letterSpacing = 0.3.sp
+                        )
+                    }
+                }
+
+                if (!game.badge.isNullOrBlank()) {
+                    Surface(
+                        color = Color(0xFFFFB300),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Text(
+                            text = game.badge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 8.5.sp,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -285,7 +388,7 @@ private fun HeroBanner(game: GameItem, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = game.tagline,
+                        text = game.tagline ?: "Play instant web games",
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 11.5.sp,
                         maxLines = 1,

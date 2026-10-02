@@ -134,7 +134,8 @@ class MainActivity : ComponentActivity() {
 
     private fun launchGame(game: GameItem, prefs: PrefsStore) {
         prefs.recordRecentlyPlayed(game.id)
-        val intent = Intent(this, GameStageActivity::class.java).apply {
+        val intent = Intent(this, GameActivity::class.java).apply {
+            putExtra("GAME_URL", game.gameUrl)
             putExtra(GameStageActivity.EXTRA_GAME_ID, game.id)
             putExtra(GameStageActivity.EXTRA_GAME_TITLE, game.title)
             putExtra(GameStageActivity.EXTRA_GAME_URL, game.gameUrl)
@@ -160,28 +161,39 @@ private fun RevaMineApp(
     var isMuted by remember { mutableStateOf(prefs.isMuted) }
     var showMenuSheet by remember { mutableStateOf(false) }
 
+    var feedResponse by remember { mutableStateOf<com.revamine.games.model.FeedResponse?>(null) }
     var games by remember { mutableStateOf<List<GameItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Dynamically derive categories from live API response
-    val categories = remember(games) {
-        val unique = games.map { it.category.lowercase() }.distinct()
-        if (unique.isEmpty()) listOf("all", "arcade", "puzzle", "action") else listOf("all") + unique
-    }
     var selectedCategory by remember { mutableStateOf("all") }
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        games = repository.fetchGames()
+    // Dynamic categories from live Feed API (with fallback)
+    val categories = remember(feedResponse, games) {
+        val apiCategories = feedResponse?.categories?.map { it.id.lowercase() }
+        if (!apiCategories.isNullOrEmpty()) {
+            apiCategories
+        } else {
+            val unique = games.map { it.category.lowercase() }.distinct()
+            if (unique.isEmpty()) listOf("all", "arcade", "puzzle", "action") else listOf("all") + unique
+        }
+    }
+
+    LaunchedEffect(selectedCategory) {
+        isLoading = games.isEmpty()
+        val feed = repository.fetchFeed(category = selectedCategory)
+        feedResponse = feed
+        games = feed.games
         isLoading = false
     }
 
     val onRefresh: () -> Unit = {
         coroutineScope.launch {
             isRefreshing = true
-            games = repository.fetchGames(forceRefresh = true)
+            val feed = repository.fetchFeed(category = selectedCategory, sort = "trending")
+            feedResponse = feed
+            games = feed.games
             isRefreshing = false
         }
     }
@@ -263,6 +275,8 @@ private fun RevaMineApp(
             when (selectedTab) {
                 BottomTab.EXPLORE -> ExploreScreen(
                     games = games,
+                    featuredGame = feedResponse?.featuredGame,
+                    trendingGames = feedResponse?.trendingGames ?: emptyList(),
                     isLoading = isLoading,
                     isRefreshing = isRefreshing,
                     onRefresh = onRefresh,

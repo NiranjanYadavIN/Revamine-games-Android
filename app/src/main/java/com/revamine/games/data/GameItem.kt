@@ -1,21 +1,11 @@
 package com.revamine.games.data
 
-data class GamesResponse(
-    val status: String,
-    val total: Int,
-    val games: List<GameItem>
-)
+import com.revamine.games.model.GameItem as ModelGameItem
+import com.revamine.games.model.FeedResponse as ModelFeedResponse
+import com.revamine.games.model.CategoryItem as ModelCategoryItem
+import com.revamine.games.model.PaginationInfo as ModelPaginationInfo
 
-data class GameItem(
-    val id: String,
-    val title: String,
-    val shortTitle: String,
-    val category: String,
-    val coverUrl: String,
-    val badge: String?,
-    val badgeColor: String?,
-    val tagline: String,
-    val order: Int,
-    val featured: Boolean,
-    val gameUrl: String
-)
+typealias GameItem = ModelGameItem
+typealias GamesResponse = ModelFeedResponse
+typealias CategoryItem = ModelCategoryItem
+typealias PaginationInfo = ModelPaginationInfo
