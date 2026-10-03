@@ -43,6 +43,8 @@ class GamesRepository(
                 "sling-dunk", "dunk-shot" -> "sling-dunk"
                 "cyber-drift", "drift" -> "cyber-drift"
                 "cyber-snake", "snake" -> "cyber-snake"
+                "knife-hit", "knife-hit-pop" -> "knife-hit"
+                "helix-jump", "helix-jump-3d" -> "helix-jump"
                 else -> s
             }
         }
@@ -58,15 +60,17 @@ class GamesRepository(
                 "dino-dash" -> "dino-sky-dash.webp"
                 "cyber-drift" -> "cyber-drift.webp"
                 "neon-2048" -> "neon-2048.webp"
+                "knife-hit" -> "knife-hit.webp"
+                "helix-jump" -> "helix-jump.webp"
                 else -> "$id.webp"
             }
         }
 
         fun normalizeCoverUrl(rawUrl: String, gameId: String): String {
-            if (rawUrl.isBlank() || rawUrl.contains("images.revamine.com") || !rawUrl.startsWith("http")) {
-                return "$R2_COVERS_BASE/${coverFilenameForId(gameId)}"
+            if (rawUrl.isNotBlank() && rawUrl.startsWith("http") && !rawUrl.contains("images.revamine.com")) {
+                return rawUrl
             }
-            return rawUrl
+            return "$R2_COVERS_BASE/${coverFilenameForId(gameId)}"
         }
 
         fun badgeColorForBadge(badge: String): String {
@@ -83,8 +87,10 @@ class GamesRepository(
     }
 
     /**
-     * Fetches dynamic home feed via Retrofit from RevaMine Cloud Games Engine
-     * (/api/feed with fallback to Google Sheet and offline cache).
+     * Fetches dynamic home feed via:
+     * 1. Primary: RevaMine Cloud Games Engine Feed API (/api/feed)
+     * 2. Secondary: Real-time Live Google Sheet Synchronization
+     * 3. Fallback: Cached games / updated assets
      */
     suspend fun fetchFeed(
         category: String? = null,
@@ -92,7 +98,7 @@ class GamesRepository(
         limit: Int = 12,
         sort: String? = null
     ): FeedResponse = withContext(Dispatchers.IO) {
-        // 1. Primary: RevaMine Cloud Games Engine Feed API
+        // 1. Primary: RevaMine Cloud Games Engine Feed API (/api/feed)
         try {
             val queryCat = if (category == "all" || category.isNullOrBlank()) null else category
             val response = ApiClient.apiService.getFeed(
@@ -128,15 +134,15 @@ class GamesRepository(
             Log.w(TAG, "Retrofit API /api/feed call failed: ${e.message}")
         }
 
-        // 2. Secondary: Fallback to existing Games endpoint / Google Sheet
+        // 2. Secondary: Fallback to real-time Google Sheet synchronization
         val fallbackGames = fetchGames()
         val featured = fallbackGames.firstOrNull { it.featured } ?: fallbackGames.firstOrNull()
 
         FeedResponse(
             status = "success",
-            platform = "RevaMine Local Engine (Offline/Fallback)",
+            platform = "RevaMine Cloud Engine (Sheet Live Sync)",
             featuredGame = featured,
-            trendingGames = fallbackGames.take(4),
+            trendingGames = fallbackGames.filter { it.badge?.contains("HOT", true) == true || it.badge?.contains("NEW", true) == true || it.badge?.contains("TRENDING", true) == true }.take(4),
             categories = listOf(
                 com.revamine.games.model.CategoryItem("all", "All Games", "Grid"),
                 com.revamine.games.model.CategoryItem("arcade", "Arcade", "Zap"),
@@ -169,7 +175,7 @@ class GamesRepository(
     }
 
     /**
-     * Backward-compatible games fetch method with Google Sheet and Offline Cache.
+     * Synchronizes games with Google Sheet and local cache.
      */
     suspend fun fetchGames(forceRefresh: Boolean = false): List<GameItem> = withContext(Dispatchers.IO) {
         val baseGames = loadBaseGames()
@@ -203,18 +209,24 @@ class GamesRepository(
     }
 
     private fun loadBaseGames(): List<GameItem> {
+        val assetGames = loadGamesFromAssets()
         val cachedJson = prefs.getCachedGamesJson()
         if (!cachedJson.isNullOrBlank()) {
             val cached = parseGamesJson(cachedJson)
             if (cached != null && cached.games.isNotEmpty()) {
-                return cached.games.map { g ->
+                val cachedIds = cached.games.map { normalizeGameId(it.id) }.toSet()
+                val missingFromCache = assetGames.filter { !cachedIds.contains(normalizeGameId(it.id)) }
+                return (cached.games + missingFromCache).map { g ->
                     g.copy(coverUrl = normalizeCoverUrl(g.coverUrl, g.id))
                 }
             }
         }
-        return loadGamesFromAssets()
+        return assetGames
     }
 
+    /**
+     * Parses Google Sheet visualization table response and updates / adds games dynamically
+     */
     private fun syncWithGoogleSheet(baseGames: List<GameItem>): List<GameItem> {
         val request = Request.Builder()
             .url(GOOGLE_SHEET_URL)
@@ -289,6 +301,44 @@ class GamesRepository(
                 } else {
                     base.copy(coverUrl = normalizeCoverUrl(base.coverUrl, base.id))
                 }
+            }.toMutableList()
+
+            // DYNAMIC GAME ADDITION: Any game present in Google Sheet that wasn't in baseGames
+            val existingIds = updatedGames.map { normalizeGameId(it.id) }.toSet()
+            sheetMap.forEach { (normId, entry) ->
+                if (!existingIds.contains(normId) && !entry.status.equals("Hidden", ignoreCase = true)) {
+                    val title = when (normId) {
+                        "knife-hit" -> "Knife Hit Pop"
+                        "helix-jump" -> "Helix Jump 3D"
+                        else -> normId.split("-").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                    }
+                    val shortTitle = when (normId) {
+                        "knife-hit" -> "Knife Hit"
+                        "helix-jump" -> "Helix Jump"
+                        else -> title
+                    }
+                    val tagline = when (normId) {
+                        "knife-hit" -> "Throw knives into the rotating target, slice juicy apples, and defeat epic fruit bosses!"
+                        "helix-jump" -> "Rotate the vibrant spiral tower, drop through gaps, and smash to the bottom!"
+                        else -> "Play instant games on RevaMine Games"
+                    }
+                    val badge = entry.badge?.takeIf { it.isNotBlank() }
+                    updatedGames.add(
+                        GameItem(
+                            id = normId,
+                            title = title,
+                            shortTitle = shortTitle,
+                            category = "arcade",
+                            coverUrl = normalizeCoverUrl("", normId),
+                            badge = badge,
+                            badgeColor = if (!badge.isNullOrBlank()) badgeColorForBadge(badge) else null,
+                            tagline = tagline,
+                            order = entry.order,
+                            featured = entry.featured,
+                            gameUrl = "https://games.revamine.com/game/$normId?mode=native"
+                        )
+                    )
+                }
             }
 
             return updatedGames.sortedBy { it.order }
@@ -304,12 +354,12 @@ class GamesRepository(
             val obj = JSONObject()
             obj.put("id", g.id)
             obj.put("title", g.title)
-            obj.put("shortTitle", g.shortTitle ?: g.title)
+            obj.put("shortTitle", g.shortTitle.ifBlank { g.title })
             obj.put("category", g.category)
             obj.put("coverUrl", normalizeCoverUrl(g.coverUrl, g.id))
             if (g.badge != null) obj.put("badge", g.badge)
             if (g.badgeColor != null) obj.put("badgeColor", g.badgeColor)
-            obj.put("tagline", g.tagline ?: "")
+            obj.put("tagline", g.tagline)
             obj.put("order", g.order)
             obj.put("featured", g.featured)
             obj.put("gameUrl", g.gameUrl)

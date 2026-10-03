@@ -1,19 +1,45 @@
 {
   "status": "success",
-  "total": 9,
+  "total": 11,
   "games": [
+    {
+      "id": "knife-hit",
+      "title": "Knife Hit Pop",
+      "shortTitle": "Knife Hit",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/knife-hit.webp",
+      "badge": "NEW",
+      "badgeColor": "bg-amber-500",
+      "tagline": "Throw knives into the rotating target, slice juicy apples, and defeat epic fruit bosses!",
+      "order": 1,
+      "featured": true,
+      "gameUrl": "https://games.revamine.com/game/knife-hit?mode=native"
+    },
     {
       "id": "fruit-blade",
       "title": "Fruit Blade Pop",
       "shortTitle": "Fruit Blade",
       "category": "arcade",
       "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/fruit-blade.webp",
-      "badge": "HOT",
+      "badge": "TRENDING",
       "badgeColor": "bg-rose-500",
       "tagline": "Slice flying fruits, score combos, dodge bombs, and unlock legendary blades!",
-      "order": 1,
-      "featured": true,
-      "gameUrl": "https://games.revamine.com/game/fruit-blade"
+      "order": 2,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/fruit-blade?mode=native"
+    },
+    {
+      "id": "helix-jump",
+      "title": "Helix Jump 3D",
+      "shortTitle": "Helix Jump",
+      "category": "arcade",
+      "coverUrl": "https://pub-db6074b2d7284990868083ef848a645c.r2.dev/covers/helix-jump.webp",
+      "badge": "HOT",
+      "badgeColor": "bg-rose-500",
+      "tagline": "Rotate the vibrant spiral tower, drop through gaps, and smash to the bottom!",
+      "order": 3,
+      "featured": false,
+      "gameUrl": "https://games.revamine.com/game/helix-jump?mode=native"
     },
     {
       "id": "cyber-snake",
@@ -24,9 +50,9 @@
       "badge": "POPULAR",
       "badgeColor": "bg-emerald-500",
       "tagline": "Navigate lush 3D grass, gobble juicy golden apples, and slither to victory!",
-      "order": 2,
+      "order": 4,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/cyber-snake"
+      "gameUrl": "https://games.revamine.com/game/cyber-snake?mode=native"
     },
     {
       "id": "sling-dunk",
@@ -37,9 +63,9 @@
       "badge": "NEW",
       "badgeColor": "bg-amber-500",
       "tagline": "Sling and shoot basketballs into moving hoops, trigger swish combos, and ignite fiery streaks!",
-      "order": 3,
+      "order": 5,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/sling-dunk"
+      "gameUrl": "https://games.revamine.com/game/sling-dunk?mode=native"
     },
     {
       "id": "bubble-blast",
@@ -50,9 +76,9 @@
       "badge": "NEW",
       "badgeColor": "bg-cyan-500",
       "tagline": "Aim the cannon, shoot colorful bubbles, pop 3+ clusters, and trigger explosive bomb blasts!",
-      "order": 4,
+      "order": 6,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/bubble-blast"
+      "gameUrl": "https://games.revamine.com/game/bubble-blast?mode=native"
     },
     {
       "id": "candy-match",
@@ -63,9 +89,9 @@
       "badge": "",
       "badgeColor": "bg-pink-500",
       "tagline": "Match 3 delicious candies, create striped sweets, and trigger chocolate bombs!",
-      "order": 5,
+      "order": 7,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/candy-match"
+      "gameUrl": "https://games.revamine.com/game/candy-match?mode=native"
     },
     {
       "id": "happy-bird",
@@ -76,9 +102,9 @@
       "badge": "",
       "badgeColor": "",
       "tagline": "Flap through pipes in a bright cheerful sky, collect gold coins, and beat your highscore!",
-      "order": 6,
+      "order": 8,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/happy-bird"
+      "gameUrl": "https://games.revamine.com/game/happy-bird?mode=native"
     },
     {
       "id": "dino-dash",
@@ -89,9 +115,9 @@
       "badge": "NEW",
       "badgeColor": "bg-emerald-500",
       "tagline": "Sprint through prehistoric lands, jump cacti, duck under pterodactyls, and collect golden eggs!",
-      "order": 7,
+      "order": 9,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/dino-dash"
+      "gameUrl": "https://games.revamine.com/game/dino-dash?mode=native"
     },
     {
       "id": "cyber-drift",
@@ -102,9 +128,9 @@
       "badge": "HOT",
       "badgeColor": "bg-rose-500",
       "tagline": "Burn rubber across neon-lit city highways, collect turbo nitro, and set speed records!",
-      "order": 8,
+      "order": 10,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/cyber-drift"
+      "gameUrl": "https://games.revamine.com/game/cyber-drift?mode=native"
     },
     {
       "id": "neon-2048",
@@ -115,9 +141,9 @@
       "badge": "",
       "badgeColor": "bg-purple-600",
       "tagline": "Slide and merge squishy jelly numbers to unlock the legendary 2048 golden block!",
-      "order": 9,
+      "order": 11,
       "featured": false,
-      "gameUrl": "https://games.revamine.com/game/neon-2048"
+      "gameUrl": "https://games.revamine.com/game/neon-2048?mode=native"
     }
   ]
 }
