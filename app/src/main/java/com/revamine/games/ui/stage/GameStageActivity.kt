@@ -189,7 +189,6 @@ private fun createGameWebView(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         settings.apply {
             javaScriptEnabled = true
