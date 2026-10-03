@@ -44,8 +44,8 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    isDarkTheme: Boolean,
-    onSplashFinished: () -> Unit,
+    isDarkTheme: Boolean = true,
+    onSplashFinished: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // Dynamic Light / Dark styling
@@ -72,9 +72,10 @@ fun SplashScreen(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 500, easing = LinearEasing)
         )
-        // Splash display duration: 1.8 seconds, then smooth transition to Main Screen
-        delay(1800)
-        onSplashFinished()
+        if (onSplashFinished != null) {
+            delay(1800)
+            onSplashFinished()
+        }
     }
 
     // Infinite pulsating animation for 3 loading dots

@@ -126,4 +126,12 @@ class RevaMineNativeBridge(
             onToggleMute?.invoke(isMuted)
         }
     }
+
+    // 7. Dynamic Status & Navigation Bar Theme Sync (Light Mode / Dark Mode)
+    @JavascriptInterface
+    fun updateTheme(isDark: Boolean) {
+        activity.runOnUiThread {
+            (activity as? com.revamine.games.MainActivity)?.applyDynamicTheme(isDark)
+        }
+    }
 }

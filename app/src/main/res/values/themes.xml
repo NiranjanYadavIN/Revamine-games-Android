@@ -4,13 +4,20 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">false</item>
+        <item name="android:statusBarColor">#070913</item>
+        <item name="android:navigationBarColor">#070913</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
 
     <style name="Theme.RevaMineGames.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/reva_splash_bg</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_revamine_logo</item>
         <item name="postSplashScreenTheme">@style/Theme.RevaMineGames</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
+        <item name="android:statusBarColor">#070913</item>
+        <item name="android:navigationBarColor">#070913</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
