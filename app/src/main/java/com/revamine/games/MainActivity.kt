@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.ViewGroup
 import android.view.Window
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -11,107 +12,140 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import com.revamine.games.bridge.RevaMineNativeBridge
+import com.revamine.games.ui.screens.SplashScreen
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var webView: WebView
+    private var webViewRef: WebView? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_RevaMineGames)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
-        // Ensure status bar and navigation bar match dark gaming theme
+        // Match status and navigation bar styling with dark gaming palette
         WindowCompat.setDecorFitsSystemWindows(window, true)
         window.statusBarColor = Color.parseColor("#070913")
         window.navigationBarColor = Color.parseColor("#070913")
 
-        webView = WebView(this)
-        setContentView(webView)
+        setContent {
+            var showSplash by remember { mutableStateOf(true) }
 
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true // Required for User Personalization Engine
-            @Suppress("DEPRECATION")
-            databaseEnabled = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            mediaPlaybackRequiresUserGesture = false
-            cacheMode = WebSettings.LOAD_DEFAULT
-        }
-
-        webView.setBackgroundColor(Color.parseColor("#070913"))
-
-        // Attach RevaMine Native Bridge for Hardware Haptics, Toasts, and Scores
-        val bridge = RevaMineNativeBridge(
-            activity = this,
-            webView = webView,
-            onExitRequested = {
-                if (webView.canGoBack()) {
-                    webView.goBack()
+            // Handle hardware back press cleanly
+            BackHandler {
+                if (webViewRef?.canGoBack() == true) {
+                    webViewRef?.goBack()
                 } else {
                     finish()
                 }
             }
-        )
-        webView.addJavascriptInterface(bridge, "RevaMineNativeBridge")
-        webView.addJavascriptInterface(bridge, "AndroidNativeBridge")
 
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url?.toString() ?: return false
-                if (url.contains("games.revamine.com") || url.startsWith("https://") || url.startsWith("http://")) {
-                    return false // Keep inside WebView
-                }
-                return try {
-                    val intent = Intent(Intent.ACTION_VIEW, request.url)
-                    startActivity(intent)
-                    true
-                } catch (e: Exception) {
-                    false
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Main Fullscreen Live Game Engine (100% full size, zero resize shifts)
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true // Required for User Personalization Algorithm
+                                @Suppress("DEPRECATION")
+                                databaseEnabled = true
+                                useWideViewPort = true
+                                loadWithOverviewMode = true
+                                mediaPlaybackRequiresUserGesture = false
+                                cacheMode = WebSettings.LOAD_DEFAULT
+                            }
+
+                            setBackgroundColor(Color.parseColor("#070913"))
+
+                            val bridge = RevaMineNativeBridge(
+                                activity = this@MainActivity,
+                                webView = this,
+                                onExitRequested = {
+                                    if (canGoBack()) goBack() else finish()
+                                }
+                            )
+                            addJavascriptInterface(bridge, "RevaMineNativeBridge")
+                            addJavascriptInterface(bridge, "AndroidNativeBridge")
+
+                            webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    request: WebResourceRequest?
+                                ): Boolean {
+                                    val url = request?.url?.toString() ?: return false
+                                    if (url.contains("games.revamine.com") || url.startsWith("https://") || url.startsWith("http://")) {
+                                        return false // Stay inside WebView
+                                    }
+                                    return try {
+                                        val intent = Intent(Intent.ACTION_VIEW, request.url)
+                                        ctx.startActivity(intent)
+                                        true
+                                    } catch (e: Exception) {
+                                        false
+                                    }
+                                }
+                            }
+
+                            webChromeClient = WebChromeClient()
+                            loadUrl("https://games.revamine.com/?mode=native")
+                            webViewRef = this
+                        }
+                    }
+                )
+
+                // Original Animated RevaMine Splash Screen (Centered Logo + Pulsing Dots + 'from RevaMine')
+                AnimatedVisibility(
+                    visible = showSplash,
+                    exit = fadeOut()
+                ) {
+                    SplashScreen(
+                        isDarkTheme = true,
+                        onSplashFinished = {
+                            showSplash = false
+                        }
+                    )
                 }
             }
         }
-
-        webView.webChromeClient = WebChromeClient()
-
-        // Hardware Back button handling (Game se Home screen par wapas aane ke liye)
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (::webView.isInitialized && webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    finish()
-                }
-            }
-        })
-
-        // Load the live native portal
-        webView.loadUrl("https://games.revamine.com/?mode=native")
     }
 
     override fun onResume() {
         super.onResume()
-        if (::webView.isInitialized) {
-            webView.onResume()
-        }
+        webViewRef?.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        if (::webView.isInitialized) {
-            webView.onPause()
-        }
+        webViewRef?.onPause()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::webView.isInitialized) {
-            webView.destroy()
-        }
+        webViewRef?.destroy()
+        webViewRef = null
     }
 }

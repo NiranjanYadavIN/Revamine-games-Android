@@ -39,21 +39,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".GameActivity"
-            android:exported="false"
-            android:theme="@style/Theme.RevaMineGames.GameStage"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode" />
-
-        <activity
-            android:name=".ui.stage.GameStageActivity"
-            android:exported="false"
-            android:theme="@style/Theme.RevaMineGames.GameStage"
-            android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode" />
-
     </application>
 
 </manifest>
