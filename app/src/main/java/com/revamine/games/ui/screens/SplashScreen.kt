@@ -56,22 +56,11 @@ fun SplashScreen(
     val footerCompanyColor = if (isDarkTheme) Color.White else Color(0xFF0F172A)
     val dotColor = if (isDarkTheme) Color(0xFF6366F1) else Color(0xFF4F46E5)
 
-    // Smooth Entrance Scale & Alpha Animation
-    val scale = remember { Animatable(0.85f) }
-    val alpha = remember { Animatable(0f) }
+    // Immediate full visibility on launch (no black delay or fade-in wait)
+    val scale = remember { Animatable(1f) }
+    val alpha = remember { Animatable(1f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 650, easing = LinearEasing)
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 500, easing = LinearEasing)
-        )
         if (onSplashFinished != null) {
             delay(1800)
             onSplashFinished()
